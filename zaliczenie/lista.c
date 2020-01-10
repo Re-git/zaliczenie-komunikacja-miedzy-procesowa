@@ -6,6 +6,9 @@
 #define THREADS_NUM 3
 
 pthread_mutex_t mymutex;
+// pthread_cond_t list_cond_full, list_cond_empty;
+// int is_full = 0;
+// int is_empty = 0;
 
 typedef struct List
 {
@@ -28,22 +31,38 @@ int push_back(List** list,int arg)
     List* tmp = *list;
     while(tmp->next)
     {
+        // if(is_full==1)
+        // {
+        //     pthread_cond_wait(&list_cond_empty, &mymutex);
+        // }
         counter++;
-        if(counter>=MAX_ELEMS) return -1;
+        if(counter>=MAX_ELEMS)
+        {
+            // is_full = 1;
+            // pthread_cond_signal(&list_cond_full);
+            return -1;
+        }
         tmp = tmp->next;
     }
     tmp->next = (List*)malloc(sizeof(List));
     tmp = tmp->next;
     tmp->value = arg;
     printf("dodalem %d do listy\n", tmp->value);
+    // is_empty=0;
     return 0;
 }
 
 int pop_front(List** list)
 {
+    // if(is_empty==1)
+    // {
+    //     pthread_cond_wait(&list_cond_full, &mymutex);
+    // }
     if(!(*list)) 
     {
         printf("Lista jest pusta, nic nie robie\n");
+        // is_empty = 1;
+        // pthread_cond_signal(&list_cond_empty);
         return -1;
     }
     int value = (*list)->value;
@@ -51,11 +70,13 @@ int pop_front(List** list)
     *list = (*list)->next;
     free(tmp);
     printf("Usuwam %d z listy \n", value);
+    // is_full = 0;
     return value;
 }
 
 void print(List* list)
 {
+    pthread_mutex_lock(&mymutex);
     List* tmp = list;
     printf("Czytam stan listy:\n");
     if(!(tmp)) printf("Lista jest pusta!\n");
@@ -65,6 +86,7 @@ void print(List* list)
         tmp = tmp->next;
     }
     printf("\n");
+    pthread_mutex_unlock(&mymutex);
 }
 
 List* makeList(int n)
@@ -76,25 +98,30 @@ List* makeList(int n)
 
 void* readfun(void * arg)
 {
-    pthread_mutex_lock(&mymutex);
-    printf("<-- Watek czytajacy rozpoczyna\n");
-    int result; 
-    result = pop_front((List**)arg);
-    printf("<-- Watek czytajacy konczy\n\n");
-    pthread_mutex_unlock(&mymutex);
+    while(1)
+    {
+        pthread_mutex_lock(&mymutex);
+        // printf("<-- Watek czytajacy rozpoczyna\n");
+        int result; 
+        result = pop_front((List**)arg);
+        // printf("<-- Watek czytajacy konczy\n\n");
+        pthread_mutex_unlock(&mymutex);
+    }
     pthread_exit(NULL);
 }
 
 void* writefun(void* arg)
 {
-    pthread_mutex_lock(&mymutex);
-    printf("--> Watek dodajacy rozpoczyna\n");
-
-    static int i=7;
-    push_back((List**)arg, i);
-    i++;
-    printf("--> Watek dodajacy konczy\n\n");
-    pthread_mutex_unlock(&mymutex);
+    while(1)
+    {
+        pthread_mutex_lock(&mymutex);
+        // printf("--> Watek dodajacy rozpoczyna\n");
+        static int i=0;
+        i++;
+        push_back((List**)arg, i);
+        // printf("--> Watek dodajacy konczy\n\n");
+        pthread_mutex_unlock(&mymutex);
+    }
     pthread_exit(NULL);
 }
 
@@ -113,6 +140,7 @@ int main()
     printf("\nRozpoczynamy watki: \n\n");
     pthread_t w_threads[THREADS_NUM];
     pthread_t r_threads[THREADS_NUM];
+    pthread_mutex_init(&mymutex,NULL);
     for (int i = 0; i < THREADS_NUM; i++)
     {
         int result = pthread_create(&w_threads[i],NULL,writefun,&head);
@@ -134,5 +162,9 @@ int main()
 
     print(head);
     printf("\nMain thread end\n");
+
+    pthread_mutex_destroy(&mymutex);
+	// pthread_cond_destroy(&list_cond_empty);
+	// pthread_cond_destroy(&list_cond_full);
     return 0;
 }
