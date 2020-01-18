@@ -74,13 +74,6 @@ void print(List* list)
     pthread_mutex_unlock(&mymutex);
 }
 
-List* makeList(int n)
-{
-    List* ptr = (List*)malloc(sizeof(List));
-    ptr->value = n;
-    return ptr;
-}
-
 void* readfun(void * arg)
 {
     while(1)
@@ -117,13 +110,6 @@ void* writefun(void* arg)
 int main()
 {
     List* head = NULL;
-
-    printf("\n\n");
-    print(head);
-    push_back(&head, 5);
-    print(head);
-    pop_front(&head);
-    print(head);
 
     printf("\nRozpoczynamy watki: \n\n");
     pthread_t w_threads[THREADS_NUM];
