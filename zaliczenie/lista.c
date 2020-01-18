@@ -84,7 +84,7 @@ void* readfun(void * arg)
          
         pop_front((List**)arg);
         is_full = 0;
-			pthread_cond_signal(&list_cond_empty);
+			pthread_cond_broadcast(&list_cond_empty);
         pthread_mutex_unlock(&mymutex);
     }
     pthread_exit(NULL);
@@ -101,7 +101,7 @@ void* writefun(void* arg)
         i++;
         push_back((List**)arg, i);
         is_full = 1;
-		pthread_cond_signal(&list_cond_full);
+		pthread_cond_broadcast(&list_cond_full);
         pthread_mutex_unlock(&mymutex);
     }
     pthread_exit(NULL);
